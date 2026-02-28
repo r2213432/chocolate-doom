@@ -54,7 +54,9 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include "d_event.h"
 
+int uplink_socket = -1;
 int sat_socket = -1;
 struct sockaddr_in tierra_addr;
 bool inicializado = false;
@@ -809,10 +811,34 @@ void I_FinishUpdate (void)
 
         inicializado = true;
         printf("Socket UDP inicializado");
+
+        // Añade esta variable global arriba con las otras
+        
+
+        // Dentro de tu if (!red_inicializada) añade esto:
+        uplink_socket = socket(AF_INET, SOCK_DGRAM, 0);
+        struct sockaddr_in up_addr;
+        up_addr.sin_family = AF_INET;
+        up_addr.sin_port = htons(9998); // Puerto Uplink
+        up_addr.sin_addr.s_addr = INADDR_ANY;
+        bind(uplink_socket, (struct sockaddr *)&up_addr, sizeof(up_addr));
     }
     
     
     int paquete_t = 1000;
+
+    // --- LEER TELECOMANDOS (UPLINK) ---
+    // Usamos MSG_DONTWAIT para que el juego NO se congele esperando si no pulsas nada
+    unsigned char cmd[2];
+    while (recvfrom(uplink_socket, cmd, 2, MSG_DONTWAIT, NULL, NULL) == 2) {
+        event_t ev;
+        // cmd[0] es el estado (1=Pulsado, 0=Soltado). cmd[1] es la tecla.
+        ev.type = cmd[0] ? ev_keydown : ev_keyup;
+        ev.data1 = cmd[1];
+        
+        // ¡Magia! Inyectamos la tecla directamente en el cerebro de Doom
+        D_PostEvent(&ev); 
+    }
 
     for (int j = 0; j < 64000; j += paquete_t)
     {
