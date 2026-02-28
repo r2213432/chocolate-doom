@@ -48,6 +48,17 @@
 #include "w_wad.h"
 #include "z_zone.h"
 
+//Pruebas insanas 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <stdbool.h>
+
+int sat_socket = -1;
+struct sockaddr_in tierra_addr;
+bool inicializado = false;
+
 // These are (1) the window (or the full screen) that our game is rendered to
 // and (2) the renderer that scales the texture (see below) into this window.
 
@@ -786,7 +797,31 @@ void I_FinishUpdate (void)
     // Blit from the paletted 8-bit screen buffer to the intermediate
     // 32-bit RGBA buffer and update the intermediate texture with the
     // contents of the RGBA buffer.
+    
+    //Pruebas insanas
 
+    if (!inicializado)
+    {
+        sat_socket = socket(AF_INET, SOCK_DGRAM, 0);
+        tierra_addr.sin_family = AF_INET;
+        tierra_addr.sin_port = htons(9999);
+        tierra_addr.sin_addr.s_addr = inet_addr("10.20.28.59");
+
+        inicializado = true;
+        printf("Socket UDP inicializado");
+    }
+    
+    
+    int paquete_t = 1000;
+
+    for (int j = 0; j < 64000; j += paquete_t)
+    {
+        sendto(sat_socket, &I_VideoBuffer[j], paquete_t, 0, (struct sockaddr *) &tierra_addr, sizeof(tierra_addr));
+    }
+    
+    
+    //Codigo antiguo
+    /*
     SDL_LockTexture(texture, &blit_rect, &argbbuffer->pixels,
                     &argbbuffer->pitch);
     SDL_LowerBlit(screenbuffer, &blit_rect, argbbuffer, &blit_rect);
@@ -821,6 +856,7 @@ void I_FinishUpdate (void)
 
     // Restore background and undo the disk indicator, if it was drawn.
     V_RestoreDiskBackground();
+    */
 }
 
 

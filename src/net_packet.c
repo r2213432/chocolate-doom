@@ -39,8 +39,8 @@ net_packet_t *NET_NewPacket(int initial_size)
 
     total_packet_memory += sizeof(net_packet_t) + initial_size;
 
-    //printf("total packet memory: %i bytes\n", total_packet_memory);
-    //printf("%p: allocated\n", packet);
+    printf("total packet memory: %i bytes\n", total_packet_memory);
+    printf("%p: allocated\n", packet);
 
     return packet;
 }
