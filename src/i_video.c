@@ -809,12 +809,11 @@ void I_FinishUpdate (void)
         tierra_addr.sin_port = htons(9999);
         tierra_addr.sin_addr.s_addr = inet_addr("10.20.28.59");
 
-        inicializado = true;
         printf("Socket UDP inicializado");
-
+        
         // Añade esta variable global arriba con las otras
         
-
+        
         // Dentro de tu if (!red_inicializada) añade esto:
         uplink_socket = socket(AF_INET, SOCK_DGRAM, 0);
         struct sockaddr_in up_addr;
@@ -822,6 +821,7 @@ void I_FinishUpdate (void)
         up_addr.sin_port = htons(9998); // Puerto Uplink
         up_addr.sin_addr.s_addr = INADDR_ANY;
         bind(uplink_socket, (struct sockaddr *)&up_addr, sizeof(up_addr));
+        inicializado = true;
     }
     
     
@@ -832,6 +832,8 @@ void I_FinishUpdate (void)
     // Usamos MSG_DONTWAIT para que el juego NO se congele esperando si no pulsas nada
     unsigned char cmd[2];
     while (recvfrom(uplink_socket, cmd, 2, MSG_DONTWAIT, NULL, NULL) == 2) {
+        
+        printf("📩 COMANDO RECIBIDO DESDE LA TIERRA: Tecla %d\n", cmd[1]);
         event_t ev;
         // cmd[0] es el estado (1=Pulsado, 0=Soltado). cmd[1] es la tecla.
         ev.type = cmd[0] ? ev_keydown : ev_keyup;
