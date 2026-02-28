@@ -802,58 +802,51 @@ void I_FinishUpdate (void)
     
     //Pruebas insanas
 
+    // --- 1. INICIALIZAR LA RED ---
     if (!inicializado)
     {
+        // Configurar envío (Downlink)
         sat_socket = socket(AF_INET, SOCK_DGRAM, 0);
         tierra_addr.sin_family = AF_INET;
         tierra_addr.sin_port = htons(9999);
-        tierra_addr.sin_addr.s_addr = inet_addr("10.20.28.59");
+        tierra_addr.sin_addr.s_addr = inet_addr("10.20.28.59"); // IP DE LA TIERRA
 
-        printf("Socket UDP inicializado");
-        
-        // Añade esta variable global arriba con las otras
-        
-        
-        // Dentro de tu if (!red_inicializada) añade esto:
+        // Configurar recepción (Uplink)
         uplink_socket = socket(AF_INET, SOCK_DGRAM, 0);
         struct sockaddr_in up_addr;
         up_addr.sin_family = AF_INET;
-        up_addr.sin_port = htons(9998); // Puerto Uplink
+        up_addr.sin_port = htons(9998);
         up_addr.sin_addr.s_addr = INADDR_ANY;
-        bind(uplink_socket, (struct sockaddr *)&up_addr, sizeof(up_addr));
+        
+        // ¡Detector de errores al abrir el puerto!
+        if (bind(uplink_socket, (struct sockaddr *)&up_addr, sizeof(up_addr)) < 0) {
+            printf("⚠️ ERROR FATAL ESPACIAL: No se pudo abrir el puerto 9998. ¿Está ocupado?\n");
+        } else {
+            printf("🛰️ ENLACE TTC ESTABLECIDO (Uplink: 9998 | Downlink: 9999)\n");
+        }
+        
         inicializado = true;
     }
     
-    
-    int paquete_t = 1000;
-    unsigned char paquete[1001];
-
-    // --- LEER TELECOMANDOS (UPLINK) ---
-    // Usamos MSG_DONTWAIT para que el juego NO se congele esperando si no pulsas nada
+    // --- 2. LEER TELECOMANDOS (UPLINK) ---
     unsigned char cmd[2];
     while (recvfrom(uplink_socket, cmd, 2, MSG_DONTWAIT, NULL, NULL) == 2) {
+        printf("📩 COMANDO RECIBIDO DESDE LA TIERRA: Tecla %d (Estado: %d)\n", cmd[1], cmd[0]);
         
-        printf("📩 COMANDO RECIBIDO DESDE LA TIERRA: Tecla %d\n", cmd[1]);
         event_t ev;
-        // cmd[0] es el estado (1=Pulsado, 0=Soltado). cmd[1] es la tecla.
         ev.type = cmd[0] ? ev_keydown : ev_keyup;
         ev.data1 = cmd[1];
-        
-        // ¡Magia! Inyectamos la tecla directamente en el cerebro de Doom
         D_PostEvent(&ev); 
     }
 
+    // --- 3. ENVIAR VÍDEO (DOWNLINK) ---
+    int paquete_t = 1000;
+    unsigned char paquete[1001];
+
     for (int chunk_id = 0; chunk_id < 64; chunk_id++) {
-        
-        // 1. Ponemos la "etiqueta" (el número de trozo del 0 al 63) al principio
         paquete[0] = chunk_id;
-        
-        // 2. Copiamos los 1000 píxeles que tocan justo detrás de la etiqueta
         memcpy(&paquete[1], &I_VideoBuffer[chunk_id * paquete_t], paquete_t);
-        
-        // 3. Enviamos el paquete de 1001 bytes
-        sendto(sat_socket, paquete, 1001, 0, 
-               (struct sockaddr *)&tierra_addr, sizeof(tierra_addr));
+        sendto(sat_socket, paquete, 1001, 0, (struct sockaddr *)&tierra_addr, sizeof(tierra_addr));
     }
     
     

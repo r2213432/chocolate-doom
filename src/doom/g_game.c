@@ -1054,7 +1054,7 @@ void G_Ticker(void)
             D_PageTicker();
             break;
     }
-    printf("Cositas\n");
+    //printf("Cositas\n");
 
     for (int i = 0; i < MAXPLAYERS; i++)
     {
