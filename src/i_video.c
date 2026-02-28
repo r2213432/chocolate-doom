@@ -826,6 +826,7 @@ void I_FinishUpdate (void)
     
     
     int paquete_t = 1000;
+    unsigned char paquete[1001];
 
     // --- LEER TELECOMANDOS (UPLINK) ---
     // Usamos MSG_DONTWAIT para que el juego NO se congele esperando si no pulsas nada
@@ -840,9 +841,17 @@ void I_FinishUpdate (void)
         D_PostEvent(&ev); 
     }
 
-    for (int j = 0; j < 64000; j += paquete_t)
-    {
-        sendto(sat_socket, &I_VideoBuffer[j], paquete_t, 0, (struct sockaddr *) &tierra_addr, sizeof(tierra_addr));
+    for (int chunk_id = 0; chunk_id < 64; chunk_id++) {
+        
+        // 1. Ponemos la "etiqueta" (el número de trozo del 0 al 63) al principio
+        paquete[0] = chunk_id;
+        
+        // 2. Copiamos los 1000 píxeles que tocan justo detrás de la etiqueta
+        memcpy(&paquete[1], &I_VideoBuffer[chunk_id * paquete_t], paquete_t);
+        
+        // 3. Enviamos el paquete de 1001 bytes
+        sendto(sat_socket, paquete, 1001, 0, 
+               (struct sockaddr *)&tierra_addr, sizeof(tierra_addr));
     }
     
     
